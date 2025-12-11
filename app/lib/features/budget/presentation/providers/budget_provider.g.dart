@@ -24,7 +24,7 @@ final monthlyBudgetsProvider =
 );
 
 typedef MonthlyBudgetsRef = AutoDisposeStreamProviderRef<List<CategoryBudget>>;
-String _$budgetManagerHash() => r'e9eac615b37cb5023076c15d21cad3e4c488973f';
+String _$budgetManagerHash() => r'11c0ac76f20460a8d1c28ecbe3090392ac701a87';
 
 /// 예산 관리 Provider
 ///

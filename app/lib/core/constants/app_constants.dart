@@ -8,7 +8,7 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API
-  static const String apiBaseUrl = 'http://localhost:8080/api/v1';
+  static const String apiBaseUrl = 'http://100.115.250.107:8080/api/v1';
 
   // Storage Keys
   static const String accessTokenKey = 'access_token';

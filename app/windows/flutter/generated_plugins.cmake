@@ -4,7 +4,9 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
+  flutter_secure_storage_windows
   rive_native
+  sqlcipher_flutter_libs
   sqlite3_flutter_libs
 )
 

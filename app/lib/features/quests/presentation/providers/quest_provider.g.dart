@@ -6,13 +6,13 @@ part of 'quest_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dailyQuestsHash() => r'c7792a6d8e50659a1d62b469a287427c5baa9cc2';
+String _$dailyQuestsHash() => r'719a8fbae5a83d08e2a33f0552469a288c085115';
 
-/// 오늘의 일일 퀘스트 스트림
+/// 일일 퀘스트 Provider (온라인 전용)
 ///
 /// Copied from [dailyQuests].
 @ProviderFor(dailyQuests)
-final dailyQuestsProvider = AutoDisposeStreamProvider<List<Quest>>.internal(
+final dailyQuestsProvider = AutoDisposeFutureProvider<List<Quest>>.internal(
   dailyQuests,
   name: r'dailyQuestsProvider',
   debugGetCreateSourceHash:
@@ -21,14 +21,14 @@ final dailyQuestsProvider = AutoDisposeStreamProvider<List<Quest>>.internal(
   allTransitiveDependencies: null,
 );
 
-typedef DailyQuestsRef = AutoDisposeStreamProviderRef<List<Quest>>;
-String _$activeQuestsHash() => r'a5ce956d38443354fe77ccd1e79b1d1e5a417309';
+typedef DailyQuestsRef = AutoDisposeFutureProviderRef<List<Quest>>;
+String _$activeQuestsHash() => r'012fe3b528db04686ecda85306918e7740a67fdd';
 
-/// 진행중인 퀘스트 스트림
+/// 진행중인 퀘스트 Provider (온라인 전용)
 ///
 /// Copied from [activeQuests].
 @ProviderFor(activeQuests)
-final activeQuestsProvider = AutoDisposeStreamProvider<List<Quest>>.internal(
+final activeQuestsProvider = AutoDisposeFutureProvider<List<Quest>>.internal(
   activeQuests,
   name: r'activeQuestsProvider',
   debugGetCreateSourceHash:
@@ -37,14 +37,14 @@ final activeQuestsProvider = AutoDisposeStreamProvider<List<Quest>>.internal(
   allTransitiveDependencies: null,
 );
 
-typedef ActiveQuestsRef = AutoDisposeStreamProviderRef<List<Quest>>;
-String _$completedQuestsHash() => r'ba7595ce5d8b14966acd6235022c6bcfd10ad49d';
+typedef ActiveQuestsRef = AutoDisposeFutureProviderRef<List<Quest>>;
+String _$completedQuestsHash() => r'3b7c173c1e71a933292b3f1e28e87cdce871bfda';
 
-/// 완료된 퀘스트 스트림
+/// 완료된 퀘스트 Provider (온라인 전용)
 ///
 /// Copied from [completedQuests].
 @ProviderFor(completedQuests)
-final completedQuestsProvider = AutoDisposeStreamProvider<List<Quest>>.internal(
+final completedQuestsProvider = AutoDisposeFutureProvider<List<Quest>>.internal(
   completedQuests,
   name: r'completedQuestsProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -54,10 +54,10 @@ final completedQuestsProvider = AutoDisposeStreamProvider<List<Quest>>.internal(
   allTransitiveDependencies: null,
 );
 
-typedef CompletedQuestsRef = AutoDisposeStreamProviderRef<List<Quest>>;
-String _$questManagerHash() => r'83d17a5d4d9b4c1acf83afd2cb161ce122a9dec7';
+typedef CompletedQuestsRef = AutoDisposeFutureProviderRef<List<Quest>>;
+String _$questManagerHash() => r'd88e3a689d0ecf86ee2f86e4b85d00b6b7addc23';
 
-/// 퀘스트 관리자
+/// 퀘스트 관리자 (온라인 전용)
 ///
 /// Copied from [QuestManager].
 @ProviderFor(QuestManager)

@@ -2,8 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/database_provider.dart';
-import '../../../hero/presentation/providers/hero_provider.dart';
-import '../../../quests/presentation/providers/quest_provider.dart';
 
 part 'transaction_provider.g.dart';
 
@@ -107,100 +105,121 @@ class TransactionManager extends _$TransactionManager {
   @override
   FutureOr<void> build() {}
 
-  /// 거래 추가 및 레벨업 결과 반환 (구버전 - 하위호환용)
-  Future<LevelUpResult?> addTransaction({
+  /// 거래 추가
+  ///
+  /// 게임 보상은 동기화 시점에 서버에서 처리됩니다.
+  /// 오프라인에서 추가된 거래는 syncStatus='pending'으로 저장됩니다.
+  Future<int> addTransaction({
     required String title,
     required int amount,
     required bool isIncome,
     required String category,
     String? note,
+    DateTime? transactionDate,
+    String? receiptImagePath,
   }) async {
     final db = ref.read(databaseProvider);
+    final deviceId = ref.read(deviceIdProvider);
 
-    // 거래 추가
-    await db.insertTransaction(
+    // 거래 추가 (pending 상태로)
+    final id = await db.insertTransaction(
       TransactionsCompanion.insert(
         title: title,
         amount: amount,
         isIncome: Value(isIncome),
         category: category,
         note: Value(note),
+        transactionDate: Value(transactionDate ?? DateTime.now()),
+        deviceId: deviceId,
+        receiptImagePath: Value(receiptImagePath),
+        receiptOcrStatus: Value(
+          receiptImagePath != null ? ReceiptOcrStatus.pending : ReceiptOcrStatus.none,
+        ),
+        syncStatus: const Value(SyncStatus.pending),
       ),
     );
 
-    // 히어로 스탯 업데이트 및 레벨업 결과 받기 (구버전)
-    final levelUpResult = await ref.read(heroManagerProvider.notifier).processTransactionLegacy(
-          amount: amount,
-          isIncome: isIncome,
-        );
-
-    // 퀘스트 진행도 업데이트
-    await ref.read(questManagerProvider.notifier).updateQuestProgress(
-          amount: amount,
-          isIncome: isIncome,
-        );
-
     // 관련 프로바이더 새로고침
-    ref.invalidate(allTransactionsProvider);
-    ref.invalidate(todayTransactionsProvider);
-    ref.invalidate(monthlyStatsProvider);
-    ref.invalidate(todayStatsProvider);
+    _invalidateAll();
 
-    return levelUpResult;
+    return id;
   }
 
-  /// 예산 기반 거래 추가 (새 시스템)
-  Future<TransactionResult> addTransactionWithBudget({
+  /// 거래 수정
+  Future<void> updateTransaction({
+    required int id,
     required String title,
     required int amount,
     required bool isIncome,
     required String category,
     String? note,
-    DateTime? date,
+    DateTime? transactionDate,
+    String? receiptImagePath,
   }) async {
     final db = ref.read(databaseProvider);
+    final deviceId = ref.read(deviceIdProvider);
 
-    // 거래 추가
-    await db.insertTransaction(
-      TransactionsCompanion.insert(
+    // 기존 거래 조회
+    final existing = await (db.select(db.transactions)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+
+    if (existing == null) return;
+
+    // 수정된 거래 저장
+    await db.updateTransaction(
+      existing.copyWith(
         title: title,
         amount: amount,
-        isIncome: Value(isIncome),
+        isIncome: isIncome,
         category: category,
         note: Value(note),
-        createdAt: Value(date ?? DateTime.now()),
+        transactionDate: transactionDate ?? existing.transactionDate,
+        receiptImagePath: Value(receiptImagePath),
+        receiptOcrStatus: receiptImagePath != null
+            ? ReceiptOcrStatus.pending
+            : ReceiptOcrStatus.none,
+        deviceId: deviceId,
+        updatedAt: DateTime.now(),
+        syncStatus: SyncStatus.pending,
       ),
     );
 
-    // 예산 기반 히어로 스탯 업데이트
-    final result = await ref.read(heroManagerProvider.notifier).processTransaction(
-          amount: amount,
-          isIncome: isIncome,
-          category: category,
-        );
-
-    // 퀘스트 진행도 업데이트
-    await ref.read(questManagerProvider.notifier).updateQuestProgress(
-          amount: amount,
-          isIncome: isIncome,
-        );
-
-    // 관련 프로바이더 새로고침
-    ref.invalidate(allTransactionsProvider);
-    ref.invalidate(todayTransactionsProvider);
-    ref.invalidate(monthlyStatsProvider);
-    ref.invalidate(todayStatsProvider);
-
-    return result;
+    _invalidateAll();
   }
 
+  /// 거래 삭제 (soft delete)
   Future<void> deleteTransaction(int id) async {
     final db = ref.read(databaseProvider);
-    await db.deleteTransaction(id);
+    await db.softDeleteTransaction(id);
+    _invalidateAll();
+  }
 
+  /// 거래 영구 삭제 (tombstone 정리용)
+  Future<void> hardDeleteTransaction(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.hardDeleteTransaction(id);
+    _invalidateAll();
+  }
+
+  void _invalidateAll() {
     ref.invalidate(allTransactionsProvider);
     ref.invalidate(todayTransactionsProvider);
     ref.invalidate(monthlyStatsProvider);
     ref.invalidate(todayStatsProvider);
   }
+}
+
+/// 동기화 대기 중인 거래 Provider
+@riverpod
+Future<List<Transaction>> pendingTransactions(PendingTransactionsRef ref) {
+  final db = ref.watch(databaseProvider);
+  return db.getPendingTransactions();
+}
+
+/// 카테고리 목록 Provider
+@riverpod
+Stream<List<Category>> categories(CategoriesRef ref) {
+  final db = ref.watch(databaseProvider);
+  return db.watchAllCategories();
 }

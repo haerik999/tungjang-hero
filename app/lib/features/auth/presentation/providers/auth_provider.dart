@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../core/auth/auth_state_service.dart';
+import '../../../../core/auth/token_service.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_client.dart';
 
@@ -54,14 +55,37 @@ class Auth extends _$Auth {
 
     try {
       final response = await _apiClient.register(email, password, nickname);
-      final data = response.data;
+      final data = response.data as Map<String, dynamic>;
 
-      _apiClient.setAuthToken(data['token']);
+      final token = data['token'] as String?;
+      final refreshToken = data['refresh_token'] as String?;
+      final expiresIn = data['expires_in'] as int?;
+
+      if (token != null) {
+        // 토큰 저장
+        await TokenService.saveAccessToken(token, expiresInSeconds: expiresIn);
+        if (refreshToken != null) {
+          await TokenService.saveRefreshToken(refreshToken);
+        }
+
+        _apiClient.setAuthToken(token);
+
+        // AppAuth 상태 업데이트
+        final user = data['user'] as Map<String, dynamic>?;
+        await ref.read(appAuthProvider.notifier).onLoginSuccess(
+              accessToken: token,
+              refreshToken: refreshToken,
+              expiresInSeconds: expiresIn,
+              userId: user?['id']?.toString(),
+              email: user?['email'] as String?,
+              nickname: user?['nickname'] as String?,
+            );
+      }
 
       state = state.copyWith(
         status: AuthStatus.authenticated,
-        token: data['token'],
-        user: data['user'],
+        token: token,
+        user: data['user'] as Map<String, dynamic>?,
       );
 
       return true;
@@ -86,14 +110,37 @@ class Auth extends _$Auth {
 
     try {
       final response = await _apiClient.login(email, password);
-      final data = response.data;
+      final data = response.data as Map<String, dynamic>;
 
-      _apiClient.setAuthToken(data['token']);
+      final token = data['token'] as String?;
+      final refreshToken = data['refresh_token'] as String?;
+      final expiresIn = data['expires_in'] as int?;
+
+      if (token != null) {
+        // 토큰 저장
+        await TokenService.saveAccessToken(token, expiresInSeconds: expiresIn);
+        if (refreshToken != null) {
+          await TokenService.saveRefreshToken(refreshToken);
+        }
+
+        _apiClient.setAuthToken(token);
+
+        // AppAuth 상태 업데이트
+        final user = data['user'] as Map<String, dynamic>?;
+        await ref.read(appAuthProvider.notifier).onLoginSuccess(
+              accessToken: token,
+              refreshToken: refreshToken,
+              expiresInSeconds: expiresIn,
+              userId: user?['id']?.toString(),
+              email: user?['email'] as String?,
+              nickname: user?['nickname'] as String?,
+            );
+      }
 
       state = state.copyWith(
         status: AuthStatus.authenticated,
-        token: data['token'],
-        user: data['user'],
+        token: token,
+        user: data['user'] as Map<String, dynamic>?,
       );
 
       return true;
@@ -113,19 +160,36 @@ class Auth extends _$Auth {
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
+    // 토큰 삭제
+    await TokenService.clearAllTokens();
     _apiClient.setAuthToken(null);
+
+    // AppAuth 상태 업데이트
+    await ref.read(appAuthProvider.notifier).logout();
+
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
   Future<void> refreshToken() async {
     try {
       final response = await _apiClient.refreshToken();
-      final token = response.data['token'];
-      _apiClient.setAuthToken(token);
-      state = state.copyWith(token: token);
+      final data = response.data as Map<String, dynamic>;
+
+      final token = data['token'] as String?;
+      final expiresIn = data['expires_in'] as int?;
+
+      if (token != null) {
+        await TokenService.saveAccessToken(token, expiresInSeconds: expiresIn);
+        _apiClient.setAuthToken(token);
+        await ref.read(appAuthProvider.notifier).onTokenRefreshed(
+              accessToken: token,
+              expiresInSeconds: expiresIn,
+            );
+        state = state.copyWith(token: token);
+      }
     } catch (e) {
-      logout();
+      await logout();
     }
   }
 
@@ -134,14 +198,37 @@ class Auth extends _$Auth {
 
     try {
       final response = await _apiClient.loginWithGoogle(idToken);
-      final data = response.data;
+      final data = response.data as Map<String, dynamic>;
 
-      _apiClient.setAuthToken(data['token']);
+      final token = data['token'] as String?;
+      final refreshToken = data['refresh_token'] as String?;
+      final expiresIn = data['expires_in'] as int?;
+
+      if (token != null) {
+        // 토큰 저장
+        await TokenService.saveAccessToken(token, expiresInSeconds: expiresIn);
+        if (refreshToken != null) {
+          await TokenService.saveRefreshToken(refreshToken);
+        }
+
+        _apiClient.setAuthToken(token);
+
+        // AppAuth 상태 업데이트
+        final user = data['user'] as Map<String, dynamic>?;
+        await ref.read(appAuthProvider.notifier).onLoginSuccess(
+              accessToken: token,
+              refreshToken: refreshToken,
+              expiresInSeconds: expiresIn,
+              userId: user?['id']?.toString(),
+              email: user?['email'] as String?,
+              nickname: user?['nickname'] as String?,
+            );
+      }
 
       state = state.copyWith(
         status: AuthStatus.authenticated,
-        token: data['token'],
-        user: data['user'],
+        token: token,
+        user: data['user'] as Map<String, dynamic>?,
       );
 
       return true;

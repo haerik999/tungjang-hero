@@ -1,30 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/database/app_database.dart';
+import '../../../../core/network/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../providers/quest_provider.dart';
 
-class QuestsScreen extends ConsumerStatefulWidget {
+/// 퀘스트 화면 (온라인 전용)
+/// 퀘스트 데이터는 서버에서 관리됩니다.
+class QuestsScreen extends ConsumerWidget {
   const QuestsScreen({super.key});
 
   @override
-  ConsumerState<QuestsScreen> createState() => _QuestsScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(isOnlineProvider);
 
-class _QuestsScreenState extends ConsumerState<QuestsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // 앱 시작시 퀘스트 생성
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(questManagerProvider.notifier).generateDailyQuestsIfNeeded();
-    });
-  }
+    // 오프라인 상태면 안내 메시지 표시
+    if (!isOnline) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('퀘스트'),
+        ),
+        body: const _OfflineMessage(),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -41,24 +41,68 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
             unselectedLabelColor: AppTheme.textSecondary,
           ),
         ),
-        body: TabBarView(
+        body: const TabBarView(
           children: [
-            _buildDailyQuests(),
-            _buildActiveQuests(),
-            _buildCompletedQuests(),
+            _DailyQuestsTab(),
+            _ActiveQuestsTab(),
+            _CompletedQuestsTab(),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildDailyQuests() {
+/// 오프라인 메시지 위젯
+class _OfflineMessage extends StatelessWidget {
+  const _OfflineMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.cloud_off,
+            size: 64,
+            color: AppTheme.textSecondary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '퀘스트는 온라인에서만 이용 가능합니다',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '네트워크 연결을 확인해주세요',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 일일 퀘스트 탭
+class _DailyQuestsTab extends ConsumerWidget {
+  const _DailyQuestsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final questsAsync = ref.watch(dailyQuestsProvider);
 
     return questsAsync.when(
       data: (quests) {
         if (quests.isEmpty) {
-          return _buildEmptyState(
+          return const _EmptyState(
             icon: Icons.wb_sunny,
             title: '오늘의 퀘스트가 없습니다',
             subtitle: '잠시 후 다시 확인해주세요',
@@ -69,7 +113,10 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
           padding: const EdgeInsets.all(16),
           itemCount: quests.length,
           itemBuilder: (context, index) {
-            return _buildQuestCard(quests[index], isDaily: true)
+            return _QuestCard(
+              quest: quests[index],
+              isDaily: true,
+            )
                 .animate()
                 .fadeIn(delay: Duration(milliseconds: index * 100))
                 .slideX(begin: -0.1);
@@ -80,17 +127,22 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
       error: (e, _) => Center(child: Text('오류: $e')),
     );
   }
+}
 
-  Widget _buildActiveQuests() {
+/// 진행중 퀘스트 탭
+class _ActiveQuestsTab extends ConsumerWidget {
+  const _ActiveQuestsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final questsAsync = ref.watch(activeQuestsProvider);
 
     return questsAsync.when(
       data: (quests) {
-        // 일일 퀘스트 제외
         final activeQuests = quests.where((q) => q.questType != 'daily').toList();
 
         if (activeQuests.isEmpty) {
-          return _buildEmptyState(
+          return const _EmptyState(
             icon: Icons.flag,
             title: '진행중인 퀘스트가 없습니다',
             subtitle: '일일 퀘스트를 완료하고 도전하세요',
@@ -101,7 +153,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
           padding: const EdgeInsets.all(16),
           itemCount: activeQuests.length,
           itemBuilder: (context, index) {
-            return _buildQuestCard(activeQuests[index])
+            return _QuestCard(quest: activeQuests[index])
                 .animate()
                 .fadeIn(delay: Duration(milliseconds: index * 100))
                 .slideX(begin: -0.1);
@@ -112,14 +164,20 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
       error: (e, _) => Center(child: Text('오류: $e')),
     );
   }
+}
 
-  Widget _buildCompletedQuests() {
+/// 완료된 퀘스트 탭
+class _CompletedQuestsTab extends ConsumerWidget {
+  const _CompletedQuestsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final questsAsync = ref.watch(completedQuestsProvider);
 
     return questsAsync.when(
       data: (quests) {
         if (quests.isEmpty) {
-          return _buildEmptyState(
+          return const _EmptyState(
             icon: Icons.emoji_events,
             title: '완료된 퀘스트가 없습니다',
             subtitle: '퀘스트를 완료하고 보상을 받으세요',
@@ -130,7 +188,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
           padding: const EdgeInsets.all(16),
           itemCount: quests.length,
           itemBuilder: (context, index) {
-            return _buildQuestCard(quests[index])
+            return _QuestCard(quest: quests[index])
                 .animate()
                 .fadeIn(delay: Duration(milliseconds: index * 100));
           },
@@ -140,12 +198,22 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
       error: (e, _) => Center(child: Text('오류: $e')),
     );
   }
+}
 
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
+/// 빈 상태 위젯
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -176,9 +244,21 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildQuestCard(Quest quest, {bool isDaily = false}) {
-    final progress = _calculateProgress(quest);
+/// 퀘스트 카드 위젯
+class _QuestCard extends ConsumerWidget {
+  final Quest quest;
+  final bool isDaily;
+
+  const _QuestCard({
+    required this.quest,
+    this.isDaily = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = _calculateProgress();
     final color = quest.isCompleted
         ? AppTheme.accentColor
         : (isDaily ? AppTheme.goldColor : AppTheme.primaryColor);
@@ -274,11 +354,12 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  _getProgressText(quest),
+                  _getProgressText(),
                   style: TextStyle(
                     fontSize: 12,
                     color: quest.isCompleted ? color : AppTheme.textSecondary,
-                    fontWeight: quest.isCompleted ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        quest.isCompleted ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],
@@ -296,7 +377,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _getRemainingTime(quest),
+                      _getRemainingTime(),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary.withValues(alpha: 0.7),
@@ -306,7 +387,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
                 ),
                 if (quest.isCompleted && !quest.isRewardClaimed)
                   ElevatedButton(
-                    onPressed: () => _claimReward(quest),
+                    onPressed: () => _claimReward(context, ref),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: color,
                       padding: const EdgeInsets.symmetric(
@@ -349,27 +430,24 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
     );
   }
 
-  double _calculateProgress(Quest quest) {
+  double _calculateProgress() {
     if (quest.isCompleted) return 1.0;
     if (quest.targetAmount == 0) return 0.0;
 
-    // 지출 제한 퀘스트는 역방향
     if (quest.title.contains('이하 지출') || quest.title.contains('무지출')) {
-      // 지출이 목표 이하면 진행중
       if (quest.currentAmount <= quest.targetAmount) {
-        return 0.8; // 진행중 표시
+        return 0.8;
       } else {
-        return 1.0; // 초과 (실패)
+        return 1.0;
       }
     }
 
     return (quest.currentAmount / quest.targetAmount).clamp(0.0, 1.0);
   }
 
-  String _getProgressText(Quest quest) {
+  String _getProgressText() {
     if (quest.isCompleted) return '완료!';
 
-    // 지출 제한 퀘스트
     if (quest.title.contains('이하 지출')) {
       final remaining = quest.targetAmount - quest.currentAmount;
       if (remaining >= 0) {
@@ -397,7 +475,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
     return amount.toString();
   }
 
-  String _getRemainingTime(Quest quest) {
+  String _getRemainingTime() {
     if (quest.isRewardClaimed) {
       return '${quest.endDate.month}/${quest.endDate.day} 완료';
     }
@@ -412,11 +490,11 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
     return '곧 만료';
   }
 
-  Future<void> _claimReward(Quest quest) async {
-    final xp = await ref.read(questManagerProvider.notifier).claimReward(quest.id);
+  Future<void> _claimReward(BuildContext context, WidgetRef ref) async {
+    final xp =
+        await ref.read(questManagerProvider.notifier).claimReward(quest.id);
 
-    if (xp > 0 && mounted) {
-      // XP 획득 이펙트 표시
+    if (xp > 0 && context.mounted) {
       GameEffectOverlay.show(
         context,
         GameEffectInfo(
@@ -426,7 +504,6 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
         ),
       );
 
-      // 스낵바도 표시
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(

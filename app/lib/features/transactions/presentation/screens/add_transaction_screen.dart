@@ -4,10 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/widgets.dart';
 import '../../../../shared/widgets/number_keypad.dart';
 import '../providers/transaction_provider.dart';
-import '../../../hero/presentation/providers/hero_provider.dart';
 import '../../../budget/presentation/providers/budget_provider.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
@@ -721,63 +719,38 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final result = await ref.read(transactionManagerProvider.notifier).addTransactionWithBudget(
+      await ref.read(transactionManagerProvider.notifier).addTransaction(
             title: title,
             amount: amount,
             isIncome: _isIncome,
             category: _selectedCategory,
             note: _note.isEmpty ? null : _note,
-            date: _selectedDate,
+            transactionDate: _selectedDate,
           );
 
       if (mounted) {
-        if (result.hasLevelUp) {
-          final levelUp = result.levelUpResult!;
-          String? newTitle;
-
-          String getTitleForLevel(int level) {
-            if (level >= 50) return '절약의 왕';
-            if (level >= 30) return '저축 달인';
-            if (level >= 20) return '알뜰 전사';
-            if (level >= 10) return '절약 수련생';
-            if (level >= 5) return '절약 초보자';
-            return '텅장 뉴비';
-          }
-
-          final oldTitle = getTitleForLevel(levelUp.oldLevel);
-          final newTitleCandidate = getTitleForLevel(levelUp.newLevel);
-          if (oldTitle != newTitleCandidate) {
-            newTitle = newTitleCandidate;
-          }
-
-          await LevelUpDialog.show(
-            context,
-            LevelUpInfo(
-              oldLevel: levelUp.oldLevel,
-              newLevel: levelUp.newLevel,
-              newTitle: newTitle,
-              xpGained: levelUp.xpGained,
-            ),
-          );
-        }
-
+        // 예산 상태 확인 (지출인 경우)
         String message;
         Color bgColor;
 
-        if (result.isOverBudget) {
-          message = '예산 초과! ${result.hpChange} HP';
-          bgColor = AppTheme.dangerColor;
-          GameEffectOverlay.show(
-            context,
-            GameEffectInfo(
-              type: GameEffectType.damage,
-              value: -result.hpChange,
-              message: '예산 초과 데미지!',
-            ),
-          );
+        if (!_isIncome) {
+          final budgetStatus = await ref
+              .read(budgetManagerProvider.notifier)
+              .getBudgetStatus(_selectedCategory);
+
+          if (budgetStatus != null && budgetStatus.isOverBudget) {
+            message = '기록 완료! (예산 초과 주의)';
+            bgColor = AppTheme.warningColor;
+          } else if (budgetStatus != null && budgetStatus.isWarning) {
+            message = '기록 완료! (예산 80% 이상 사용)';
+            bgColor = AppTheme.warningColor;
+          } else {
+            message = '지출이 기록되었습니다';
+            bgColor = AppTheme.primaryColor;
+          }
         } else {
-          message = '기록 완료! +${result.xpGained} XP';
-          bgColor = _isIncome ? AppTheme.accentColor : AppTheme.primaryColor;
+          message = '수입이 기록되었습니다';
+          bgColor = AppTheme.accentColor;
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

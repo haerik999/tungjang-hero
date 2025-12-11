@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/auth/auth_state_service.dart';
+import '../../../../core/network/connectivity_provider.dart';
+import '../../../../core/network/sync_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 더보기 내부 탭 종류
@@ -317,6 +320,8 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          _buildSyncSection(),
+          const SizedBox(height: 16),
           _buildSettingSection('알림', [
             _buildSwitchSetting('푸시 알림', true),
             _buildSwitchSetting('이벤트 알림', true),
@@ -343,6 +348,246 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
         ],
       ),
     );
+  }
+
+  /// 동기화 섹션 빌드
+  Widget _buildSyncSection() {
+    final syncState = ref.watch(syncServiceProvider);
+    final isGuest = ref.watch(isGuestModeProvider);
+    final isOnline = ref.watch(isOnlineProvider);
+    final canSync = ref.watch(canSyncProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('데이터 동기화',
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1b263b),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              // 동기화 상태 표시
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _getSyncStatusColor(syncState.status)
+                          .withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: syncState.isSyncing
+                        ? const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF00d9ff),
+                            ),
+                          )
+                        : Icon(
+                            _getSyncStatusIcon(syncState.status),
+                            color: _getSyncStatusColor(syncState.status),
+                            size: 20,
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _getSyncStatusText(syncState.status, isGuest, isOnline),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14),
+                        ),
+                        const SizedBox(height: 2),
+                        if (syncState.lastSyncTime != null)
+                          Text(
+                            '마지막 동기화: ${_formatDateTime(syncState.lastSyncTime!)}',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 11),
+                          )
+                        else if (!isGuest)
+                          Text(
+                            '동기화한 적 없음',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 11),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (syncState.hasPendingChanges)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warningColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${syncState.pendingChanges}건 대기',
+                        style: TextStyle(
+                            color: AppTheme.warningColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // 동기화 버튼
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: canSync && isOnline && !syncState.isSyncing
+                      ? () => _handleManualSync()
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00d9ff),
+                    disabledBackgroundColor:
+                        const Color(0xFF00d9ff).withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: syncState.isSyncing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.sync, size: 18),
+                  label: Text(
+                    syncState.isSyncing ? '동기화 중...' : '지금 동기화',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ),
+              ),
+              if (isGuest) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '로그인하면 데이터가 클라우드에 백업됩니다',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              if (!isOnline && !isGuest) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cloud_off,
+                        color: Colors.white.withValues(alpha: 0.5), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      '오프라인 상태입니다',
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleManualSync() async {
+    final result =
+        await ref.read(syncServiceProvider.notifier).manualSync();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.hasErrors
+                ? '동기화 완료 (일부 오류: ${result.errors.first})'
+                : '동기화 완료 (업로드: ${result.uploaded}, 다운로드: ${result.downloaded})',
+          ),
+          backgroundColor:
+              result.hasErrors ? AppTheme.warningColor : AppTheme.accentColor,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Color _getSyncStatusColor(SyncStatusType status) {
+    switch (status) {
+      case SyncStatusType.idle:
+        return const Color(0xFF778da9);
+      case SyncStatusType.syncing:
+        return const Color(0xFF00d9ff);
+      case SyncStatusType.success:
+        return const Color(0xFF4ade80);
+      case SyncStatusType.error:
+        return const Color(0xFFe94560);
+    }
+  }
+
+  IconData _getSyncStatusIcon(SyncStatusType status) {
+    switch (status) {
+      case SyncStatusType.idle:
+        return Icons.cloud_queue;
+      case SyncStatusType.syncing:
+        return Icons.sync;
+      case SyncStatusType.success:
+        return Icons.cloud_done;
+      case SyncStatusType.error:
+        return Icons.cloud_off;
+    }
+  }
+
+  String _getSyncStatusText(
+      SyncStatusType status, bool isGuest, bool isOnline) {
+    if (isGuest) return '게스트 모드';
+    if (!isOnline) return '오프라인';
+
+    switch (status) {
+      case SyncStatusType.idle:
+        return '동기화 대기';
+      case SyncStatusType.syncing:
+        return '동기화 중...';
+      case SyncStatusType.success:
+        return '동기화 완료';
+      case SyncStatusType.error:
+        return '동기화 실패';
+    }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    if (diff.inDays < 7) return '${diff.inDays}일 전';
+
+    return '${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildSettingSection(String title, List<Widget> children) {

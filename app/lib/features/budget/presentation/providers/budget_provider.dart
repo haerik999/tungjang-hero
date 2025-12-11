@@ -27,6 +27,7 @@ class BudgetManager extends _$BudgetManager {
     int? month,
   }) async {
     final db = ref.read(databaseProvider);
+    final deviceId = ref.read(deviceIdProvider);
     final now = DateTime.now();
     final targetYear = year ?? now.year;
     final targetMonth = month ?? now.month;
@@ -36,10 +37,13 @@ class BudgetManager extends _$BudgetManager {
 
     if (existing != null) {
       // 업데이트
-      await db.updateHeroStats(existing.copyWith(
-        amount: amount,
-        updatedAt: DateTime.now(),
-      ) as HeroStatsTableData);
+      await (db.update(db.categoryBudgets)
+            ..where((b) => b.id.equals(existing.id)))
+          .write(CategoryBudgetsCompanion(
+        amount: Value(amount),
+        updatedAt: Value(DateTime.now()),
+        syncStatus: const Value(SyncStatus.pending),
+      ));
     } else {
       // 새로 생성
       await db.upsertBudget(CategoryBudgetsCompanion.insert(
@@ -47,16 +51,18 @@ class BudgetManager extends _$BudgetManager {
         amount: amount,
         year: targetYear,
         month: targetMonth,
+        deviceId: deviceId,
+        syncStatus: const Value(SyncStatus.pending),
       ));
     }
 
     ref.invalidate(monthlyBudgetsProvider);
   }
 
-  /// 예산 삭제
+  /// 예산 삭제 (soft delete)
   Future<void> removeBudget(int budgetId) async {
     final db = ref.read(databaseProvider);
-    await db.deleteBudget(budgetId);
+    await db.softDeleteBudget(budgetId);
     ref.invalidate(monthlyBudgetsProvider);
   }
 

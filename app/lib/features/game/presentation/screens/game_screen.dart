@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/auth/auth_state_service.dart';
+import '../../../../core/network/connectivity_provider.dart';
 
 /// 게임 내부 탭 종류
 enum GameTab { battle, character, inventory, skill, quest, boss }
@@ -223,6 +226,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 온라인 전용 체크
+    final isOnline = ref.watch(isOnlineProvider);
+    final isGuest = ref.watch(isGuestModeProvider);
+    final canPlay = isOnline && !isGuest;
+
+    if (!canPlay) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0f1a2e),
+        body: SafeArea(
+          child: _buildOfflineOverlay(isOnline: isOnline, isGuest: isGuest),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0f1a2e),
       body: SafeArea(
@@ -233,6 +250,109 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             if (_currentTab == GameTab.battle && _monsterHp > 0) _buildMonsterStatus(),
             Expanded(child: _buildContent()),
             _buildQuickMenu(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 오프라인/게스트 모드 오버레이
+  Widget _buildOfflineOverlay({required bool isOnline, required bool isGuest}) {
+    final String title;
+    final String message;
+    final IconData icon;
+    final Color iconColor;
+
+    if (!isOnline) {
+      title = '인터넷 연결이 필요합니다';
+      message = '게임 기능은 온라인 상태에서만 이용할 수 있습니다.\n네트워크 연결을 확인해주세요.';
+      icon = Icons.wifi_off;
+      iconColor = const Color(0xFFe94560);
+    } else if (isGuest) {
+      title = '로그인이 필요합니다';
+      message = '게임 기능을 이용하려면 로그인이 필요합니다.\n게임 데이터는 서버에서 관리됩니다.';
+      icon = Icons.lock_outline;
+      iconColor = const Color(0xFFffd700);
+    } else {
+      title = '접근 불가';
+      message = '현재 게임에 접근할 수 없습니다.';
+      icon = Icons.error_outline;
+      iconColor = const Color(0xFFe94560);
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: iconColor.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: Icon(icon, size: 64, color: iconColor),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.7),
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            if (isGuest) ...[
+              ElevatedButton.icon(
+                onPressed: () => context.push('/auth/login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFe94560),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                ),
+                icon: const Icon(Icons.login),
+                label: const Text(
+                  '로그인하기',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            OutlinedButton.icon(
+              onPressed: () {
+                // 가계부 탭으로 이동 (MainScreen의 탭 인덱스 변경 필요)
+                // 간단히 뒤로 가기로 처리
+                if (context.canPop()) {
+                  context.pop();
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF00d9ff),
+                side: const BorderSide(color: Color(0xFF00d9ff)),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+              icon: const Icon(Icons.receipt_long),
+              label: const Text(
+                '가계부로 이동',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
           ],
         ),
       ),

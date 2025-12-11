@@ -224,6 +224,42 @@ class _MonthlyTransactionsProviderElement
   int get month => (origin as MonthlyTransactionsProvider).month;
 }
 
+String _$pendingTransactionsHash() =>
+    r'0ddef54427f6b4480387f7ede7d12b1d17291c58';
+
+/// 동기화 대기 중인 거래 Provider
+///
+/// Copied from [pendingTransactions].
+@ProviderFor(pendingTransactions)
+final pendingTransactionsProvider =
+    AutoDisposeFutureProvider<List<Transaction>>.internal(
+  pendingTransactions,
+  name: r'pendingTransactionsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$pendingTransactionsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef PendingTransactionsRef
+    = AutoDisposeFutureProviderRef<List<Transaction>>;
+String _$categoriesHash() => r'86015b1e68053aa615bc72202eb8ebd5a55a1a0e';
+
+/// 카테고리 목록 Provider
+///
+/// Copied from [categories].
+@ProviderFor(categories)
+final categoriesProvider = AutoDisposeStreamProvider<List<Category>>.internal(
+  categories,
+  name: r'categoriesProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$categoriesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef CategoriesRef = AutoDisposeStreamProviderRef<List<Category>>;
 String _$selectedMonthHash() => r'88b5027d5fcd1d548ed8ad62f6a955f1e2734243';
 
 /// 현재 선택된 월
@@ -279,7 +315,7 @@ final todayStatsProvider = AutoDisposeAsyncNotifierProvider<TodayStats,
 typedef _$TodayStats
     = AutoDisposeAsyncNotifier<({int income, int expense, int balance})>;
 String _$transactionManagerHash() =>
-    r'f6a4d947f93b4bb52b7c84cc69f2f8a3dc58fad2';
+    r'3df63be128b70bed77f9c046a13b6edec2987d99';
 
 /// 거래 추가/수정/삭제 관리
 ///
