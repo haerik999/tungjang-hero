@@ -1,0 +1,60 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tungjang-hero-api
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      - SERVER_PORT=8080
+      - GIN_MODE=${GIN_MODE:-release}
+      - TZ=Asia/Seoul
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-tungjang}
+      - DB_PASSWORD=${DB_PASSWORD:-heropassword}
+      - DB_NAME=${DB_NAME:-tungjang_hero}
+      - DB_SSLMODE=disable
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - JWT_EXPIRY_HOURS=${JWT_EXPIRY_HOURS:-24}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tungjang-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: postgres:16-alpine
+    container_name: tungjang-hero-db
+    environment:
+      - POSTGRES_USER=${DB_USER:-tungjang}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-heropassword}
+      - POSTGRES_DB=${DB_NAME:-tungjang_hero}
+      - TZ=Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_EXTERNAL_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tungjang} -d ${DB_NAME:-tungjang_hero}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tungjang-network
+
+volumes:
+  postgres_data:
+
+networks:
+  tungjang-network:
+    driver: bridge

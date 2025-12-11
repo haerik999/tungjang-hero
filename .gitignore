@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════
+# Common
+# ═══════════════════════════════════════════════════════════
+*.log
+*.swp
+.DS_Store
+.env
+.env.local
+.vscode/
+.idea/
+
+# ═══════════════════════════════════════════════════════════
+# Flutter (app/)
+# ═══════════════════════════════════════════════════════════
+*.class
+*.pyc
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ
+*.iml
+*.ipr
+*.iws
+
+# Flutter/Dart/Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.dart-tool/
+.flutter-plugins-dependencies
+.flutter-plugins
+.flutter
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# Gradle
+.gradle/
+*.gradle.kts.ignore
+
+# Generated
+.config/
+
+# Symbolication
+app.*.symbols
+
+# Obfuscation
+app.*.map.json
+
+# Android Studio
+app/android/app/debug
+app/android/app/profile
+app/android/app/release
+app/android/.gradle/
+app/android/local.properties
+
+# iOS
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+
+# ═══════════════════════════════════════════════════════════
+# Go (server/)
+# ═══════════════════════════════════════════════════════════
+# Binaries
+server/bin/
+server/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+
+# Go workspace
+go.work
+
+# Vendor (if not committing)
+# server/vendor/
+
+# Air live reload
+server/tmp/

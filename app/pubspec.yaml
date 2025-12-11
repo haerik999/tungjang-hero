@@ -1,0 +1,71 @@
+name: tungjang_hero
+description: "텅장히어로 - RPG 스타일 게이미피케이션 가계부 앱"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Routing
+  go_router: ^16.2.0
+
+  # Network
+  dio: ^5.9.0
+  retrofit: ^4.4.1
+  connectivity_plus: ^6.0.5
+
+  # Local Database
+  drift: ^2.14.1
+  drift_flutter: ^0.1.0
+
+  # Data Classes
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # UI Components
+  getwidget: ^7.0.0
+
+  # Animations
+  flutter_animate: ^4.5.2
+  lottie: ^3.3.2
+
+  # Utils
+  path_provider: ^2.1.5
+  intl: ^0.19.0
+  rive: ^0.14.0
+
+  # OAuth
+  google_sign_in: ^6.2.1
+  kakao_flutter_sdk_user: ^1.9.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # Code Generation
+  build_runner: ^2.4.6
+  riverpod_generator: ^2.3.5
+  riverpod_lint: ^2.3.7
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.0.6
+  drift_dev: ^2.14.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/animations/
+    - assets/rive/
