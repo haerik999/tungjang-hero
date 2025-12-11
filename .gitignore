@@ -4,10 +4,30 @@
 *.log
 *.swp
 .DS_Store
-.env
-.env.local
 .vscode/
 .idea/
+
+# ═══════════════════════════════════════════════════════════
+# Secrets & Credentials (중요!)
+# ═══════════════════════════════════════════════════════════
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Firebase / Google
+google-services.json
+GoogleService-Info.plist
+
+# Android signing
+*.keystore
+*.jks
+key.properties
 
 # ═══════════════════════════════════════════════════════════
 # Flutter (app/)
