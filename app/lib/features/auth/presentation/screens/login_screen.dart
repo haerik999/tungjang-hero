@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -263,45 +262,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
-
-                // Kakao login button
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleKakaoLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEE500),
-                    foregroundColor: Colors.black87,
-                    elevation: 2,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.network(
-                        'https://t1.kakaocdn.net/kakaocorp/kakaocorp/admin/service/2c6e99c01ad04f4cab28ef76d5acc9c9.png',
-                        width: 20,
-                        height: 20,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
-                            color: Colors.brown,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        '카카오로 계속하기',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
                 const SizedBox(height: 16),
 
                 // Guest mode
@@ -389,46 +349,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Google 로그인 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: AppTheme.dangerColor,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _handleKakaoLogin() async {
-    setState(() => _isLoading = true);
-
-    try {
-      bool kakaoTalkInstalled = await isKakaoTalkInstalled();
-
-      OAuthToken token;
-      if (kakaoTalkInstalled) {
-        token = await UserApi.instance.loginWithKakaoTalk();
-      } else {
-        token = await UserApi.instance.loginWithKakaoAccount();
-      }
-
-      final success = await ref.read(authProvider.notifier).loginWithKakao(token.accessToken);
-
-      setState(() => _isLoading = false);
-
-      if (success && mounted) {
-        context.go('/main');
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('카카오 로그인에 실패했습니다.'),
-            backgroundColor: AppTheme.dangerColor,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('카카오 로그인 중 오류가 발생했습니다: ${e.toString()}'),
             backgroundColor: AppTheme.dangerColor,
           ),
         );

@@ -90,7 +90,6 @@ func main() {
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/google", authHandler.GoogleOAuth)
-			auth.POST("/kakao", authHandler.KakaoOAuth)
 			auth.POST("/find-email", authHandler.FindEmail)
 			auth.POST("/password/reset-request", authHandler.PasswordResetRequest)
 			auth.POST("/password/reset-confirm", authHandler.PasswordResetConfirm)

@@ -161,38 +161,6 @@ class Auth extends _$Auth {
     }
   }
 
-  Future<bool> loginWithKakao(String accessToken) async {
-    state = state.copyWith(status: AuthStatus.loading, clearError: true);
-
-    try {
-      final response = await _apiClient.loginWithKakao(accessToken);
-      final data = response.data;
-
-      _apiClient.setAuthToken(data['token']);
-
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        token: data['token'],
-        user: data['user'],
-      );
-
-      return true;
-    } on DioException catch (e) {
-      final appError = AppError.fromException(_apiClient.convertException(e));
-      state = state.copyWith(
-        status: AuthStatus.unauthenticated,
-        error: appError,
-      );
-      return false;
-    } catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.unauthenticated,
-        error: AppError.unknown(e),
-      );
-      return false;
-    }
-  }
-
   Future<String?> findEmail(String nickname) async {
     try {
       final response = await _apiClient.findEmail(nickname);

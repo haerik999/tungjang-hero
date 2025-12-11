@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/database/database_provider.dart';
@@ -9,14 +8,6 @@ import 'router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Kakao SDK
-  // Replace 'YOUR_KAKAO_NATIVE_APP_KEY' with your actual Kakao Native App Key
-  // Get this from https://developers.kakao.com/
-  KakaoSdk.init(
-    nativeAppKey: 'YOUR_KAKAO_NATIVE_APP_KEY',
-    javaScriptAppKey: 'YOUR_KAKAO_JAVASCRIPT_APP_KEY',
-  );
 
   // 데이터베이스 초기화를 위한 컨테이너 생성
   final container = ProviderContainer();

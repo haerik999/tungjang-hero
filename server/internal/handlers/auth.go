@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -188,102 +187,6 @@ func (h *AuthHandler) GoogleOAuth(c *gin.Context) {
 			user.OAuthProvider = "google"
 			user.OAuthID = googleInfo.Sub
 			database.DB.Save(&user)
-		}
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-		return
-	}
-
-	// Update last login
-	now := time.Now()
-	user.LastLoginAt = &now
-	database.DB.Save(&user)
-
-	// Generate token
-	token, err := middleware.GenerateToken(&user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return
-	}
-
-	c.JSON(http.StatusOK, models.UserLoginResponse{
-		Token: token,
-		User:  user,
-	})
-}
-
-// KakaoOAuth handles Kakao OAuth authentication
-func (h *AuthHandler) KakaoOAuth(c *gin.Context) {
-	var req models.OAuthKakaoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Verify Kakao token
-	ctx := context.Background()
-	kakaoInfo, err := services.VerifyKakaoToken(ctx, req.Token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Kakao token"})
-		return
-	}
-
-	kakaoID := fmt.Sprintf("%d", kakaoInfo.ID)
-	email := kakaoInfo.KakaoAccount.Email
-	nickname := kakaoInfo.Properties.Nickname
-
-	// Email might not be available if user didn't agree
-	if email == "" {
-		email = fmt.Sprintf("kakao_%s@tungjang-hero.local", kakaoID)
-	}
-
-	if nickname == "" {
-		nickname = fmt.Sprintf("User_%s", kakaoID[:8])
-	}
-
-	// Check if user exists with this OAuth provider
-	var user models.User
-	err = database.DB.Where("oauth_provider = ? AND oauth_id = ?", "kakao", kakaoID).First(&user).Error
-
-	if err == gorm.ErrRecordNotFound {
-		// Check if email already exists (for linking accounts)
-		if kakaoInfo.KakaoAccount.Email != "" {
-			err = database.DB.Where("email = ?", email).First(&user).Error
-			if err == gorm.ErrRecordNotFound {
-				// Create new user
-				user = models.User{
-					Email:         email,
-					Nickname:      nickname,
-					OAuthProvider: "kakao",
-					OAuthID:       kakaoID,
-				}
-
-				if err := database.DB.Create(&user).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-					return
-				}
-			} else if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-				return
-			} else {
-				// User exists with same email but different provider - link accounts
-				user.OAuthProvider = "kakao"
-				user.OAuthID = kakaoID
-				database.DB.Save(&user)
-			}
-		} else {
-			// Create new user without verified email
-			user = models.User{
-				Email:         email,
-				Nickname:      nickname,
-				OAuthProvider: "kakao",
-				OAuthID:       kakaoID,
-			}
-
-			if err := database.DB.Create(&user).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-				return
-			}
 		}
 	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})

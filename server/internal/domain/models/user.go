@@ -51,10 +51,6 @@ type OAuthGoogleRequest struct {
 	Token string `json:"token" binding:"required"`
 }
 
-type OAuthKakaoRequest struct {
-	Token string `json:"token" binding:"required"`
-}
-
 // Find email request/response types
 type FindEmailRequest struct {
 	Nickname string `json:"nickname" binding:"required"`

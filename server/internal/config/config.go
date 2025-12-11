@@ -33,7 +33,6 @@ type JWTConfig struct {
 
 type OAuthConfig struct {
 	GoogleClientID string
-	KakaoClientID  string
 }
 
 func Load() *Config {
@@ -62,7 +61,6 @@ func Load() *Config {
 		},
 		OAuth: OAuthConfig{
 			GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),
-			KakaoClientID:  getEnv("KAKAO_CLIENT_ID", ""),
 		},
 	}
 }

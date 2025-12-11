@@ -2,11 +2,8 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 
 	"google.golang.org/api/idtoken"
 )
@@ -17,21 +14,6 @@ type GoogleTokenInfo struct {
 	Name          string `json:"name"`
 	Picture       string `json:"picture"`
 	Sub           string `json:"sub"` // Google user ID
-}
-
-type KakaoTokenInfo struct {
-	ID           int64              `json:"id"`
-	KakaoAccount KakaoAccountInfo   `json:"kakao_account"`
-	Properties   KakaoProperties    `json:"properties"`
-}
-
-type KakaoAccountInfo struct {
-	Email              string `json:"email"`
-	EmailNeedsAgreement bool  `json:"email_needs_agreement"`
-}
-
-type KakaoProperties struct {
-	Nickname string `json:"nickname"`
 }
 
 // VerifyGoogleToken verifies a Google OAuth token and returns user info
@@ -60,45 +42,4 @@ func VerifyGoogleToken(ctx context.Context, token string, clientID string) (*Goo
 		Picture:       picture,
 		Sub:           sub,
 	}, nil
-}
-
-// VerifyKakaoToken verifies a Kakao OAuth token and returns user info
-func VerifyKakaoToken(ctx context.Context, token string) (*KakaoTokenInfo, error) {
-	// Call Kakao API to verify token
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://kapi.kakao.com/v2/user/me", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify Kakao token: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Kakao API error (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var tokenInfo KakaoTokenInfo
-	if err := json.Unmarshal(body, &tokenInfo); err != nil {
-		return nil, fmt.Errorf("failed to parse Kakao response: %w", err)
-	}
-
-	// Validate required fields
-	if tokenInfo.ID == 0 {
-		return nil, errors.New("invalid Kakao token: user ID not found")
-	}
-
-	return &tokenInfo, nil
 }

@@ -175,12 +175,6 @@ class ApiClient {
     });
   }
 
-  Future<Response> loginWithKakao(String accessToken) {
-    return _dio.post('/auth/kakao', data: {
-      'access_token': accessToken,
-    });
-  }
-
   Future<Response> findEmail(String nickname) {
     return _dio.post('/auth/find-email', data: {
       'nickname': nickname,
